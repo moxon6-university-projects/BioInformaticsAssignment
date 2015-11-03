@@ -5,99 +5,120 @@ import os
 
 
 class NeedlemanWunch:
-    def __init__(self, sequence_a, sequence_b, i, d, s, m):
-        self.sequenceA = sequence_a
-        self.sequenceB = sequence_b
-        self.insert = i
-        self.delete = d
-        self.substitution = s
-        self.match = m
-        
-        self.opt = [[0 for x in range(len(self.sequenceB)+1)] for x in range(len(self.sequenceA)+1)]
-        self.dir = [[0 for x in range(len(self.sequenceB)+1)] for x in range(len(self.sequenceA)+1)]
+    def __init__(self, sequence_a, sequence_b,
+                 insertion_cost,
+                 deletion_cost,
+                 substitution_cost,
+                 match_cost):
 
-        # The allowed directions
+        # Input Sequences
+        self.sequenceA = sequence_a  # Y Sequence
+        self.sequenceB = sequence_b  # X Sequence
+
+        # Edit Costs
+        self.insert = insertion_cost
+        self.delete = deletion_cost
+        self.substitution = substitution_cost
+        self.match_cost = match_cost
+
+        # Optimal Matrix
+        self.optimal = [[0 for x in range(len(self.sequenceB)+1)]
+                        for x in range(len(self.sequenceA)+1)]
+
+        # Direction Matrix
+        self.direction = [[0 for x in range(len(self.sequenceB)+1)]
+                          for x in range(len(self.sequenceA)+1)]
+
+        # Direction Arrows, Direction value in Binary - 3 bits - can be [XYZ] = [UDL] ~ Up, Diagonal, Left
         self.LEFT = 1
         self.DIAGONAL = 2
         self.UP = 4
 
     def align(self):
-        # First of all, compute insertions and deletions at 1st row/column
-        self.opt[0][0] = 0
+        # Compute insertions and deletions for 1st row, column
+        self.optimal[0][0] = 0
         for i in range(1, len(self.sequenceA)+1):
-            self.opt[i][0] = self.opt[i - 1][0] + self.delete
+            self.optimal[i][0] = self.optimal[i - 1][0] + self.delete
         for j in range(1, len(self.sequenceB)+1):
-            self.opt[0][j] = self.opt[0][j - 1] + self.insert
+            self.optimal[0][j] = self.optimal[0][j - 1] + self.insert
 
         # Set the values of row 0 and column 0
-        self.dir[0][0] = 2
-        for i in range(1, len(self.sequenceA)+1):
-            self.dir[i][0] = 4
+        self.direction[0][0] = 2
+        for i in range(1, len(self.sequenceA) + 1):
+            self.direction[i][0] = self.UP
         
-        for i in range(1, len(self.sequenceB)+1):
-            self.dir[0][i] = 1
+        for i in range(1, len(self.sequenceB) + 1):
+            self.direction[0][i] = self.LEFT
 
-        # Now compute the rest of the cells
-        for i in range (1, len(self.sequenceA)+1):
-            for j in range (1, len(self.sequenceB)+1):
-                score_diag = self.opt[i - 1][j - 1]
+        # Compute the rest of the cells
+        for i in range(1, len(self.sequenceA)+1):
+            for j in range(1, len(self.sequenceB)+1):
+
                 if self.sequenceA[i-1] == self.sequenceB[j-1]:
-                    score_diag += self.match
+                    score_diagonal = self.optimal[i - 1][j - 1] + self.match_cost  # If Symbols Match
                 else:
-                    score_diag += self.substitution
-                score_left = self.opt[i][j - 1] + self.insert
-                score_up = self.opt[i - 1][j] + self.delete
-                # we take the minimum
-                self.opt[i][j] = min(score_diag, score_left, score_up)
-                self.dir[i][j] = 0
-                if self.opt[i][j] == score_left:
-                    self.dir[i][j] += self.LEFT
-                if self.opt[i][j] == score_diag:
-                    self.dir[i][j] += self.DIAGONAL
-                if self.opt[i][j] == score_up:
-                    self.dir[i][j] += self.UP
+                    score_diagonal = self.optimal[i - 1][j - 1] + self.substitution  # Otherwise Substitute
+
+                score_left = self.optimal[i][j - 1] + self.insert
+                score_up = self.optimal[i - 1][j] + self.delete
+
+                # Take the minimum of these scores
+                self.optimal[i][j] = min(score_diagonal, score_left, score_up)
+                self.direction[i][j] = 0
+                if self.optimal[i][j] == score_left:
+                    self.direction[i][j] += self.LEFT
+                if self.optimal[i][j] == score_diagonal:
+                    self.direction[i][j] += self.DIAGONAL
+                if self.optimal[i][j] == score_up:
+                    self.direction[i][j] += self.UP
                 # end of align
 
     def output_matrices(self):
-        for j in range(-1, len(self.sequenceB)+1):
-            if j >= 1:
-                print(self.sequenceB[j-1] + '\t', end=""),
+        """
+        Prints out Optimal and Direction Matrices
+        """
+
+        """
+        Print Optimal Matrix
+        """
+        print("\n", "_"*7, "Optimal Matrix", "_"*7)
+        print("\t\t" + "\t".join(list(self.sequenceB)))
+        for i in range(0, len(self.sequenceA)+1):
+
+            if i >= 1:
+                print(self.sequenceA[i-1] + '\t', end="")
             else:
                 print('\t', end="")
-        print("\t")
-        for i in range(0, len(self.sequenceA)+1):
-            if i >= 1:
-                print(self.sequenceA[i-1] + '\t', end=""),
-            else:
-                print('\t', end=""),
             for j in range(0, len(self.sequenceB)+1):
-                print(str(self.opt[i][j]) + '\t', end=""),
+                print(str(self.optimal[i][j]) + '\t', end=""),
             print("")
-        print("")
 
-        for j in range(-1, len(self.sequenceB)+1):
-            if j >= 1:
-                print(self.sequenceB[j-1] + '\t', end=""),
-            else:
-                print('\t', end=""),
-        print("")
-        # Output directions
-    
+        """
+        Print Direction Matrix
+        """
+        print("\n", "_"*7, "Direction Matrix", "_"*7)
+        print("\t\t" + "\t".join(list(self.sequenceB)))
         for i in range(0, len(self.sequenceA)+1):
             if i >= 1:
                 print(self.sequenceA[i-1] + '\t', end=""),
             else:
                 print('\t', end=""),
             for j in range(0, len(self.sequenceB)+1):
-                print(str(self.dir[i][j]) + '\t', end=""),
+                print(str(self.direction[i][j]) + '\t', end=""),
             print("")
-            # end of output matrix
 
     def recurse_tree(self, d, a, tail_top, tail_bottom):
+        """
+        Follows Arrows Through Direction Matrix From End to Origin
+        If a cell has multiple arrows, paths diverge and alignment is
+            found for each possible path
+        """
+
         if d == 0 and a == 0:
-            print("+")
+            print("___Alignment Output___")
             print(tail_top)
             print(tail_bottom)
+            print("")
         else:
             tc = ''
             if d >= 0:
@@ -106,17 +127,18 @@ class NeedlemanWunch:
             if a >= 0:
                 bc = self.sequenceB[a-1]
 
-            if (self.dir[d][a] & self.LEFT) == self.LEFT:  # we go left
+            if (self.direction[d][a] & self.LEFT) == self.LEFT:  # If Left Arrow
                 self.recurse_tree(d, a - 1, '-' + tail_top, bc + tail_bottom)
 
-            if (self.dir[d][a] & self.DIAGONAL) == self.DIAGONAL:  # we go diagonal
+            if (self.direction[d][a] & self.DIAGONAL) == self.DIAGONAL:  # If Diagonal Arrow
                 self.recurse_tree(d - 1, a - 1, tc + tail_top, bc + tail_bottom)
 
-            if (self.dir[d][a] & self.UP) == self.UP:  # we go up
+            if (self.direction[d][a] & self.UP) == self.UP:  # If Up Arrow
                 self.recurse_tree(d - 1, a, tc + tail_top, '-' + tail_bottom)
             # end of recurse tree
 
     def output_alignments(self):
+        print("\n___Outputting Alignments___\n")
         self.recurse_tree(len(self.sequenceA), len(self.sequenceB), '', '')
 
 
@@ -125,19 +147,45 @@ def main():
         file_name = sys.argv[1]
     except IndexError:
         file_name = "input.txt"
-
-    with open(os.path.join('inputs', file_name)) as f:
-        sA = f.readline().rstrip()
-        sB = f.readline().rstrip()
-
-    print(sA)
-    print(sB)
-
-    nw = NeedlemanWunch(sA, sB, 1, 1, 1, 0)
-    nw.align()
-    nw.output_matrices()
-    nw.output_alignments()
+    with open(os.path.join('inputs', file_name)) as input_file:
+        sequence_a = input_file.readline().rstrip()
+        sequence_b = input_file.readline().rstrip()
+    print(sequence_a)
+    print(sequence_b)
+    needleman_wunch = NeedlemanWunch(sequence_a=sequence_a,
+                                     sequence_b=sequence_b,
+                                     insertion_cost=1,
+                                     deletion_cost=1,
+                                     substitution_cost=1,
+                                     match_cost=0)
+    needleman_wunch.align()
+    needleman_wunch.output_matrices()
+    needleman_wunch.output_alignments()
 
 if __name__ == "__main__":
     main()
 
+
+"""
+Example Optimal Matrix
+        A   T   C   C   G   A   T
+    0   1   2   3   4   5   6   7
+T	1	1	1	2	3	4	5	6
+G	2	2	2	2	3	3	4	5
+C	3	3	3	2	2	3	4	5
+A	4	3	4	3	3	3	3	4
+T	5	4	3	4	4	4	4	3
+A	6	5	4	4	5	5	4	4
+T	7	6	5	5	5	6	5	4
+
+Example Direction Matrix
+        A   T   C   C   G   A   T
+    2   1   1   1   1   1   1   1
+T	4	2	2	1	1	1	1	3
+G	4	6	6	2	3	2	1	1
+C	4	6	6	2	2	1	3	3
+A	4	2	7	4	6	2	2	1
+T	4	4	2	5	6	6	6	2
+A	4	6	4	2	7	6	2	4
+T	4	4	6	6	2	7	4	2
+"""
