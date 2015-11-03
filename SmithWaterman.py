@@ -4,7 +4,7 @@ import sys
 import os
 
 
-class NeedlemanWunch:
+class SmithWaterman:
     def __init__(self, sequence_a, sequence_b,
                  insertion_cost,
                  deletion_cost,
@@ -61,7 +61,7 @@ class NeedlemanWunch:
                 score_up = self.optimal[i - 1][j] + self.delete
 
                 # Take the minimum of these scores
-                self.optimal[i][j] = min(score_diagonal, score_left, score_up)
+                self.optimal[i][j] = max(0, score_diagonal, score_left, score_up)
                 self.direction[i][j] = 0
                 if self.optimal[i][j] == score_left:
                     self.direction[i][j] += self.LEFT
@@ -150,15 +150,15 @@ def main():
         sequence_b = input_file.readline().rstrip()
     print(sequence_a)
     print(sequence_b)
-    needleman_wunch = NeedlemanWunch(sequence_a=sequence_a,
+    smith_waterman = SmithWaterman(sequence_a=sequence_a,
                                      sequence_b=sequence_b,
-                                     insertion_cost=1,
-                                     deletion_cost=1,
-                                     substitution_cost=1,
+                                     insertion_cost=-1,
+                                     deletion_cost=-1,
+                                     substitution_cost=-1,
                                      match_cost=0)
-    needleman_wunch.align()
-    needleman_wunch.output_matrices()
-    needleman_wunch.output_alignments()
+    smith_waterman.align()
+    smith_waterman.output_matrices()
+    smith_waterman.output_alignments()
 
 if __name__ == "__main__":
     main()
