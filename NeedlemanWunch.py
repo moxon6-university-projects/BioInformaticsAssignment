@@ -11,9 +11,16 @@ class NeedlemanWunch:
                  substitution_cost,
                  match_cost):
 
+        # Swap so longer string is along X axis
+        if len(sequence_a) > len(sequence_b):
+            sequence_a, sequence_b = sequence_b, sequence_a
+
         # Input Sequences
         self.sequenceA = sequence_a  # Y Sequence
         self.sequenceB = sequence_b  # X Sequence
+
+        print("Sequence A:", sequence_a)
+        print("Sequence B:", sequence_a)
 
         # Edit Costs
         self.insert = insertion_cost
@@ -44,7 +51,7 @@ class NeedlemanWunch:
             self.optimal[i][0] = self.optimal[i - 1][0] + self.delete
             self.direction[i][0] = self.UP
 
-        for i in range(1, len(self.sequenceA)+1):
+        for i in range(1, len(self.sequenceB)+1):
             self.optimal[0][i] = self.optimal[0][i - 1] + self.insert
             self.direction[0][i] = self.LEFT
 
@@ -148,8 +155,7 @@ def main():
     with open(os.path.join('inputs', file_name)) as input_file:
         sequence_a = input_file.readline().rstrip()
         sequence_b = input_file.readline().rstrip()
-    print(sequence_a)
-    print(sequence_b)
+
     needleman_wunch = NeedlemanWunch(sequence_a=sequence_a,
                                      sequence_b=sequence_b,
                                      insertion_cost=1,

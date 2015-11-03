@@ -11,9 +11,16 @@ class SmithWaterman:
                  substitution_cost,
                  match_cost):
 
+        # Swap so longer string is along X axis
+        if len(sequence_a) > len(sequence_b):
+            sequence_a, sequence_b = sequence_b, sequence_a
+
         # Input Sequences
         self.sequenceA = sequence_a  # Y Sequence
         self.sequenceB = sequence_b  # X Sequence
+
+        print("Sequence A:", sequence_a)
+        print("Sequence B:", sequence_a)
 
         # Edit Costs
         self.insert = insertion_cost
@@ -34,6 +41,9 @@ class SmithWaterman:
         self.DIAGONAL = 2
         self.UP = 4
 
+        self.max_value = 0
+        self.max_indices = [0, 0]
+
     def align(self):
         # Compute insertions and deletions for 1st row and 1st column
         # Set the values of row 0 and column 0
@@ -41,11 +51,11 @@ class SmithWaterman:
         self.direction[0][0] = self.DIAGONAL
 
         for i in range(1, len(self.sequenceA)+1):
-            self.optimal[i][0] = self.optimal[i - 1][0] + self.delete
+            self.optimal[i][0] = 0
             self.direction[i][0] = self.UP
 
-        for i in range(1, len(self.sequenceA)+1):
-            self.optimal[0][i] = self.optimal[0][i - 1] + self.insert
+        for i in range(1, len(self.sequenceB)+1):
+            self.optimal[0][i] = 0
             self.direction[0][i] = self.LEFT
 
         # Compute the rest of the cells
@@ -61,7 +71,10 @@ class SmithWaterman:
                 score_up = self.optimal[i - 1][j] + self.delete
 
                 # Take the minimum of these scores
-                self.optimal[i][j] = max(0, score_diagonal, score_left, score_up)
+                self.optimal[i][j] = max(0,  # Indicates a 'Free Ride' to that cell
+                                         score_diagonal,  # Score of going Diagonal
+                                         score_left,  # Score of going Left
+                                         score_up)  # Score of going Up
                 self.direction[i][j] = 0
                 if self.optimal[i][j] == score_left:
                     self.direction[i][j] += self.LEFT
@@ -69,6 +82,10 @@ class SmithWaterman:
                     self.direction[i][j] += self.DIAGONAL
                 if self.optimal[i][j] == score_up:
                     self.direction[i][j] += self.UP
+
+                if self.optimal[i][j] > self.max_value:
+                    self.max_value = self.optimal[i][j]
+                    self.max_indices = [i, j]
                 # end of align
 
     def output_matrices(self):
@@ -112,7 +129,7 @@ class SmithWaterman:
             found for each possible path
         """
 
-        if d == 0 and a == 0:
+        if self.optimal[d][a] == 0:
             print("___Alignment Output___")
             print(tail_top)
             print(tail_bottom)
@@ -136,26 +153,25 @@ class SmithWaterman:
             # end of recurse tree
 
     def output_alignments(self):
-        print("\n___Outputting Alignments___\n")
-        self.recurse_tree(len(self.sequenceA), len(self.sequenceB), '', '')
+        print("\n___Outputting Local Alignments___\n")
+        self.recurse_tree(self.max_indices[0], self.max_indices[1], '', '')
 
 
 def main():
     try:
         file_name = sys.argv[1]
     except IndexError:
-        file_name = "input.txt"
+        file_name = "example.txt"
     with open(os.path.join('inputs', file_name)) as input_file:
         sequence_a = input_file.readline().rstrip()
         sequence_b = input_file.readline().rstrip()
-    print(sequence_a)
-    print(sequence_b)
+
     smith_waterman = SmithWaterman(sequence_a=sequence_a,
                                      sequence_b=sequence_b,
                                      insertion_cost=-1,
                                      deletion_cost=-1,
-                                     substitution_cost=-1,
-                                     match_cost=0)
+                                     substitution_cost=-3,
+                                     match_cost=1)
     smith_waterman.align()
     smith_waterman.output_matrices()
     smith_waterman.output_alignments()
