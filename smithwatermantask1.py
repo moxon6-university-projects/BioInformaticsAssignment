@@ -2,27 +2,30 @@ import sys
 import os
 
 """
-Modified Needleman Wunch Algorithm to be more easily readable
+Reads in two lines at a time from an input file and performs a local
+alignment on each of these pairs of lines
+
+Usage:
+python smithwatermantask1.py input_file
+
+Example:
+python smithwatermantask1.py output4.txt
 """
 
 
-class NeedlemanWunch:
+class SmithWaterman:
     def __init__(self, sequence_a, sequence_b,
                  insertion_cost,
                  deletion_cost,
                  substitution_cost,
                  match_cost):
 
-        # Swap so longer string is along X axis
-        if len(sequence_a) > len(sequence_b):
-            sequence_a, sequence_b = sequence_b, sequence_a
-
         # Input Sequences
         self.sequenceA = sequence_a  # Y Sequence
         self.sequenceB = sequence_b  # X Sequence
 
-        print("Sequence A:", sequence_a)
-        print("Sequence B:", sequence_b)
+        print("Sequence A:", self.sequenceA)
+        print("Sequence B:", self.sequenceB)
 
         # Edit Costs
         self.insert = insertion_cost
@@ -43,6 +46,10 @@ class NeedlemanWunch:
         self.DIAGONAL = 2
         self.UP = 4
 
+        self.max_value = 0
+        self.max_indices = [0, 0]
+
+
     def align(self):
         # Compute insertions and deletions for 1st row and 1st column
         # Set the values of row 0 and column 0
@@ -50,11 +57,11 @@ class NeedlemanWunch:
         self.direction[0][0] = self.DIAGONAL
 
         for i in range(1, len(self.sequenceA)+1):
-            self.optimal[i][0] = self.optimal[i - 1][0] + self.delete
+            self.optimal[i][0] = 0
             self.direction[i][0] = self.UP
 
         for i in range(1, len(self.sequenceB)+1):
-            self.optimal[0][i] = self.optimal[0][i - 1] + self.insert
+            self.optimal[0][i] = 0
             self.direction[0][i] = self.LEFT
 
         # Compute the rest of the cells
@@ -69,9 +76,11 @@ class NeedlemanWunch:
                 score_left = self.optimal[i][j - 1] + self.insert
                 score_up = self.optimal[i - 1][j] + self.delete
 
-                # Take the minimum of these scores
-                self.optimal[i][j] = min(score_diagonal, score_left, score_up)
-
+                # Take the maximum of these scores
+                self.optimal[i][j] = max(0,  # Indicates a 'Free Ride' to that cell
+                                         score_diagonal,  # Score of going Diagonal
+                                         score_left,  # Score of going Left
+                                         score_up)  # Score of going Up
                 self.direction[i][j] = 0
                 if self.optimal[i][j] == score_left:
                     self.direction[i][j] += self.LEFT
@@ -79,6 +88,10 @@ class NeedlemanWunch:
                     self.direction[i][j] += self.DIAGONAL
                 if self.optimal[i][j] == score_up:
                     self.direction[i][j] += self.UP
+
+                if self.optimal[i][j] > self.max_value:
+                    self.max_value = self.optimal[i][j]
+                    self.max_indices = [i, j]
                 # end of align
 
     def output_matrices(self):
@@ -122,12 +135,11 @@ class NeedlemanWunch:
             found for each possible path
         """
 
-        if d == 0 and a == 0:
-
-            print("___Alignment Output___")
-            print(tail_top)
-            print(tail_bottom)
+        if self.optimal[d][a] == 0:
+            print("\nAligning : %s, %s" % (self.sequenceA, self.sequenceB))
+            print(">>> Local Alignment: \n>>> %s\n>>> %s" % (tail_top, tail_bottom))
             print("")
+
         else:
             tc = ''
             if d >= 0:
@@ -144,31 +156,40 @@ class NeedlemanWunch:
 
             if (self.direction[d][a] & self.UP) == self.UP:  # If Up Arrow
                 self.recurse_tree(d - 1, a, tc + tail_top, '-' + tail_bottom)
-            # end of recurse tree
 
-    def output_alignments(self):
-        print("\n___Outputting Alignments___\n")
-        self.recurse_tree(len(self.sequenceA), len(self.sequenceB), '', '')
+    def print_alignments(self):
+        self.recurse_tree(self.max_indices[0], self.max_indices[1], '', '')
 
 
 def main():
     try:
         file_name = sys.argv[1]
     except IndexError:
-        file_name = "input.txt"
-    with open(os.path.join('inputs', file_name)) as input_file:
-        sequence_a = input_file.readline().rstrip()
-        sequence_b = input_file.readline().rstrip()
+        # Aligns the sequences from the lecture slides
+        file_name = "example.txt"
 
-    needleman_wunch = NeedlemanWunch(sequence_a=sequence_a,
-                                     sequence_b=sequence_b,
-                                     insertion_cost=1,
-                                     deletion_cost=1,
-                                     substitution_cost=1,
-                                     match_cost=0)
-    needleman_wunch.align()
-    needleman_wunch.output_matrices()
-    needleman_wunch.output_alignments()
+    with open(os.path.join('inputs', file_name)) as input_file:
+        while True:
+            sequence_a = input_file.readline().rstrip()
+            sequence_b = input_file.readline().rstrip()
+            if len(sequence_a) > 0 and len(sequence_b) > 0:
+                align_sequences(sequence_a, sequence_b)
+            else:
+                break
+
+
+def align_sequences(sequence_a, sequence_b):
+    print("_"*10, "Sequence Alignment", "_"*10)
+    smith_waterman = SmithWaterman(sequence_a=sequence_a,
+                                   sequence_b=sequence_b,
+                                   insertion_cost=-1,
+                                   deletion_cost=-1,
+                                   substitution_cost=-3,
+                                   match_cost=1)
+    smith_waterman.align()
+    smith_waterman.output_matrices()
+    smith_waterman.print_alignments()
+    print("#", "_"*9, "End Sequence Alignment", "_"*9, "#", "\n"*10)
 
 if __name__ == "__main__":
     main()

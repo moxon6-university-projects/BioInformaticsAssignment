@@ -1,7 +1,9 @@
-#!/usr/bin/python
-
 import sys
 import os
+
+"""
+Usage:
+"""
 
 
 class SmithWaterman:
@@ -35,7 +37,7 @@ class SmithWaterman:
         self.UP = 4
 
         self.max_value = 0
-        self.max_indices = NotImplemented
+        self.max_indices = [0, 0]
         self.relative_position = NotImplemented
 
     def align(self):
@@ -125,6 +127,7 @@ class SmithWaterman:
 
         if self.optimal[d][a] == 0:
             self.relative_position = d - a
+
         else:
             tc = ''
             if d >= 0:
@@ -141,7 +144,6 @@ class SmithWaterman:
 
             if (self.direction[d][a] & self.UP) == self.UP:  # If Up Arrow
                 self.recurse_tree(d - 1, a, tc + tail_top, '-' + tail_bottom)
-            # end of recurse tree
 
     def get_relative_position(self):
         self.recurse_tree(self.max_indices[0], self.max_indices[1], '', '')
@@ -196,22 +198,23 @@ def local_align(sequence1, sequence2):
     return smith_waterman
 
 
-def merge_sw(sw_list):
-    string_list = [x.sequenceB for x in sw_list]
-    return merge_strings(string_list)
-
-
 def merge_strings(string_list):
     while len(string_list) > 1:
         x = string_list[0]
         y = string_list[1]
         z = 0
         for i in range(len(x)+1):
-            if x[i:] in y:
+            if x[i:] == y[:len(x)-i]:
                 z = x[:i] + y
                 break
         string_list = [z] + string_list[2:]
     return string_list[0]
+
+
+def write_sequence(output_string):
+    out_file = open('output.txt', 'w')
+    out_file.write(output_string)
+    out_file.close()
 
 
 def main():
@@ -221,8 +224,12 @@ def main():
         sw = local_align(template, sequence)
         sw_list.append(sw)
     sw_list.sort(key=lambda x: x.relative_position)
-    output_string = merge_sw(sw_list)
+
+    string_list = [x.sequenceB for x in sw_list]
+    output_string = merge_strings(string_list)
     print(output_string)
+    write_sequence(output_string)
+
 
 if __name__ == "__main__":
     main()
