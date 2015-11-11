@@ -2,7 +2,27 @@ import sys
 import os
 
 """
+Prints out assembled sequence and saves to output.txt
+Provide command line path to file or select from files in input folder
+
 Usage:
+python smithwatermantask2.py [input_file]
+
+Example:
+python smithwatermantask2.py sequence_input.txt
+
+Example:
+python smithwatermantask2.py
+
+    Available Input Files:
+    1. input.txt
+    2. input2.txt
+    3. input3.txt
+    4. input4.txt
+    5. example.txt
+    6. mytest.txt
+    Enter Input File Number:
+    >>> 4
 """
 
 
@@ -212,7 +232,7 @@ def merge_strings(string_list):
 
 
 def write_sequence(output_string):
-    out_file = open('output.txt', 'w')
+    out_file = open('output\output.txt', 'w')
     out_file.write(output_string)
     out_file.close()
 
