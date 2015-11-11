@@ -11,16 +11,9 @@ class SmithWaterman:
                  substitution_cost,
                  match_cost):
 
-        # Swap so longer string is along X axis
-        if len(sequence_a) > len(sequence_b):
-            sequence_a, sequence_b = sequence_b, sequence_a
-
         # Input Sequences
         self.sequenceA = sequence_a  # Y Sequence
         self.sequenceB = sequence_b  # X Sequence
-
-        print("Sequence A:", self.sequenceA)
-        print("Sequence B:", self.sequenceB)
 
         # Edit Costs
         self.insert = insertion_cost
@@ -42,7 +35,8 @@ class SmithWaterman:
         self.UP = 4
 
         self.max_value = 0
-        self.max_indices = [0, 0]
+        self.max_indices = NotImplemented
+        self.relative_position = NotImplemented
 
     def align(self):
         # Compute insertions and deletions for 1st row and 1st column
@@ -82,12 +76,13 @@ class SmithWaterman:
                     self.direction[i][j] += self.DIAGONAL
                 if self.optimal[i][j] == score_up:
                     self.direction[i][j] += self.UP
+
                 if self.optimal[i][j] > self.max_value:
                     self.max_value = self.optimal[i][j]
                     self.max_indices = [i, j]
                 # end of align
 
-    def output_matrices(self):
+    def print_matrices(self):
         """
         Prints out Optimal and Direction Matrices
         """
@@ -129,11 +124,7 @@ class SmithWaterman:
         """
 
         if self.optimal[d][a] == 0:
-
-            print("Aligning : %s, %s" % (self.sequenceA, self.sequenceB))
-
-            print("Local Alignment: \n%s\n%s" % (tail_top, tail_bottom))
-            print("")
+            self.relative_position = d - a
         else:
             tc = ''
             if d >= 0:
@@ -152,53 +143,86 @@ class SmithWaterman:
                 self.recurse_tree(d - 1, a, tc + tail_top, '-' + tail_bottom)
             # end of recurse tree
 
-    def print_alignments(self):
+    def get_relative_position(self):
         self.recurse_tree(self.max_indices[0], self.max_indices[1], '', '')
 
 
-def main():
+def get_input_directory():
+    directory_path = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(directory_path, "inputs")
+
+
+def read_sequences():
     try:
         file_name = sys.argv[1]
     except IndexError:
-        file_name = "example.txt"
-    with open(os.path.join('inputs', file_name)) as input_file:
-        sequence_a = input_file.readline().rstrip()
-        sequence_b = input_file.readline().rstrip()
+        print("Available Input Files:")
+        input_directory = get_input_directory()
+        input_file_names = os.listdir(input_directory)
+        for i, input_filename in enumerate(input_file_names):
+            print(str(i+1) + ".", input_filename)
+        file_name = None
+        while not file_name:
+            try:
+                print("Enter Input File Number: ")
+                file_index_string = input('>>> ')
+                file_index = int(file_index_string) - 1
+                file_name = input_file_names[file_index]
+                file_name = os.path.join(input_directory, file_name)
+            except KeyboardInterrupt:
+                file_name = None
+            except ValueError:
+                file_name = None
+            except IndexError:
+                file_name = None
 
-    smith_waterman = SmithWaterman(sequence_a=sequence_a,
-                                     sequence_b=sequence_b,
-                                     insertion_cost=-1,
-                                     deletion_cost=-1,
-                                     substitution_cost=-3,
-                                     match_cost=1)
+    input_file = open(file_name)
+    sequences = input_file.read().split("\n")
+    sequences = [sequence for sequence in sequences if len(sequence.rstrip()) > 0]
+    template = sequences[0]
+    shorter_sequences = sequences[1:]
+    return template, shorter_sequences
+
+
+def local_align(sequence1, sequence2):
+    smith_waterman = SmithWaterman(sequence_a=sequence1,
+                                   sequence_b=sequence2,
+                                   insertion_cost=-1,
+                                   deletion_cost=-1,
+                                   substitution_cost=-3,
+                                   match_cost=1)
     smith_waterman.align()
-    smith_waterman.output_matrices()
-    smith_waterman.print_alignments()
+    smith_waterman.get_relative_position()
+    return smith_waterman
+
+
+def merge_sw(sw_list):
+    string_list = [x.sequenceB for x in sw_list]
+    return merge_strings(string_list)
+
+
+def merge_strings(string_list):
+    while len(string_list) > 1:
+        x = string_list[0]
+        y = string_list[1]
+        z = 0
+        for i in range(len(x)+1):
+            if x[i:] in y:
+                z = x[:i] + y
+                break
+        string_list = [z] + string_list[2:]
+    return string_list[0]
+
+
+def main():
+    template, shorter_sequences = read_sequences()
+    sw_list = []
+    for sequence in shorter_sequences:
+        sw = local_align(template, sequence)
+        sw_list.append(sw)
+    sw_list.sort(key=lambda x: x.relative_position)
+    output_string = merge_sw(sw_list)
+    print(output_string)
 
 if __name__ == "__main__":
     main()
-
-
-"""
-Example Optimal Matrix
-        A   T   C   C   G   A   T
-    0   1   2   3   4   5   6   7
-T	1	1	1	2	3	4	5	6
-G	2	2	2	2	3	3	4	5
-C	3	3	3	2	2	3	4	5
-A	4	3	4	3	3	3	3	4
-T	5	4	3	4	4	4	4	3
-A	6	5	4	4	5	5	4	4
-T	7	6	5	5	5	6	5	4
-
-Example Direction Matrix
-        A   T   C   C   G   A   T
-    2   1   1   1   1   1   1   1
-T	4	2	2	1	1	1	1	3
-G	4	6	6	2	3	2	1	1
-C	4	6	6	2	2	1	3	3
-A	4	2	7	4	6	2	2	1
-T	4	4	2	5	6	6	6	2
-A	4	6	4	2	7	6	2	4
-T	4	4	6	6	2	7	4	2
-"""
