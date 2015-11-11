@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7c0d7210-e7dc-41f0-b6fe-c7b8cf2e424b" name="Default" comment="Final Project Files">
       <change type="DELETED" beforePath="E:\Dropbox\Documents\Repositories\BioInformaticsAssignment\SmithWaterman.py" afterPath="" />
-      <change type="MOVED" beforePath="E:\Dropbox\Documents\Repositories\BioInformaticsAssignment\SmithWatermantask2.py" afterPath="$PROJECT_DIR$/smithwatermantask2.py" />
     </list>
     <ignored path="BioInformaticsAssignment.iws" />
     <ignored path=".idea/workspace.xml" />
